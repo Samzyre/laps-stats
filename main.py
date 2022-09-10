@@ -29,7 +29,7 @@ IGNORE_PIT_LAPS = True
 COLOR_COMPARE_STINT = True
 
 # Column alignment
-ALIGN = [10, 14, 12, 12, 12]
+ALIGN = [14, 14, 12, 12, 12]
 
 
 @unique
@@ -224,13 +224,17 @@ class Stats:
         if averages:
             output += "# AVERAGES:\n"
 
+            align = [0, *ALIGN[1:]]
+
             for stint in self.stints:
+                name = stint.name.ljust(ALIGN[0])
                 lap = stint.included_avg
                 lap.set_diff_to(self.included_avg)
-                output += lap.fmt() + "\n"
+                output += Fore.MAGENTA + name + lap.fmt(align) + "\n"
 
-            output += "\n" + self.included_avg.fmt() + "\n"
-            output += self.all_avg.fmt() + "\n\n"
+            output += "\n"
+            output += "incl. avg".ljust(ALIGN[0]) + self.included_avg.fmt(align) + "\n"
+            output += "total avg".ljust(ALIGN[0]) + self.all_avg.fmt(align) + "\n\n"
 
         if totals:
             align = [n + 3 for n in ALIGN]

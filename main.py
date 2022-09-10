@@ -1,15 +1,19 @@
-from re import S
-import statistics
-
+# import statistics
 import colorama
-from colorama import Fore, Back, Style
 
 # import datetime
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from enum import Enum, unique
 
-from utils import *
+from utils import (
+    time_to_delta,
+    delta_to_time,
+    time_fmt,
+    time_parse,
+    average_time,
+    Color,
+)
 
 
 # First lap number of each stint (:"driver")
@@ -68,18 +72,14 @@ class Lap:
         num = str(self.num) if self.num > 0 else ""
 
         if self.diff == Diff.Up:
-            diff_color = Fore.GREEN
+            diff_color = Color.green
         elif self.diff == Diff.Down:
-            diff_color = Fore.RED
+            diff_color = Color.red
         else:
-            diff_color = Fore.WHITE
+            diff_color = Color.white
 
-        output = (
-            Fore.WHITE
-            + num.ljust(align[0])
-            + diff_color
-            + time_fmt(self.total, hours).ljust(align[1])
-            + Fore.RESET
+        output = Color.white(num.ljust(align[0])) + diff_color(
+            time_fmt(self.total, hours).ljust(align[1]) + Color.reset(style=False)
         )
 
         for idx, s in enumerate(self.sectors):
@@ -125,7 +125,7 @@ class Stint:
         return self.fmt()
 
     def fmt(self, show_all=True) -> str:
-        output = Fore.MAGENTA + self.name + "\n" + Fore.RESET
+        output = Color.magenta(self.name + "\n")
 
         for lap in self.laps:
             if COLOR_COMPARE_STINT:
@@ -134,9 +134,9 @@ class Stint:
             lap.set_diff_to(self.included_avg)
 
             if not lap.is_pit_lap():
-                output += str(lap) + "\n"
+                output += Color.bright(str(lap) + "\n")
             elif lap.is_pit_lap() and show_all:
-                output += Style.DIM + str(lap) + "*\n"
+                output += Color.dim(str(lap) + "*\n")
 
         return output
 
@@ -230,7 +230,7 @@ class Stats:
                 name = stint.name.ljust(ALIGN[0])
                 lap = stint.included_avg
                 lap.set_diff_to(self.included_avg)
-                output += Fore.MAGENTA + name + lap.fmt(align) + "\n"
+                output += Color.magenta(name) + lap.fmt(align) + "\n"
 
             output += "\n"
             output += "incl. avg".ljust(ALIGN[0]) + self.included_avg.fmt(align) + "\n"

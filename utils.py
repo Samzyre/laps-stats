@@ -28,15 +28,5 @@ def time_parse(string: str, hours=False) -> datetime:
         return datetime.strptime(string, "%M:%S.%f")
 
 
-def time_to_millis(time: datetime) -> int:
-    return (
-        time.minute * 60 * 1000 + time.second * 1000 + round(time.microsecond / 1000.0)
-    )
-
-
-def millis_to_time(millis: int) -> datetime:
-    return datetime.utcfromtimestamp(millis / 1000.0)
-
-
 def average_time(time, n) -> datetime:
-    return millis_to_time(round(time_to_millis(time) / n))
+    return delta_to_time(time_to_delta(time) / n)

@@ -225,7 +225,9 @@ class Stats:
             output += "# AVERAGES:\n"
 
             for stint in self.stints:
-                output += stint.included_avg.fmt() + "\n"
+                lap = stint.included_avg
+                lap.set_diff_to(self.included_avg)
+                output += lap.fmt() + "\n"
 
             output += "\n" + self.included_avg.fmt() + "\n"
             output += self.all_avg.fmt() + "\n\n"

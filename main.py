@@ -56,7 +56,9 @@ class Lap:
         self.total = total
         self.sectors = sectors
         self.diff = diff
-        self.sector_diffs = [Diff.Neutral for _ in sectors]
+        self.sector_diffs = (
+            [Diff.Neutral for _ in sectors] if len(sector_diffs) == 0 else sector_diffs
+        )
 
     def __str__(self) -> str:
         return self.fmt()

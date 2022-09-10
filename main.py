@@ -44,11 +44,19 @@ class Diff(Enum):
 
 
 class Lap:
-    def __init__(self, total: datetime, *sectors: datetime, num=0, diff=Diff.Neutral):
+    def __init__(
+        self,
+        total: datetime,
+        *sectors: datetime,
+        num=0,
+        diff=Diff.Neutral,
+        sector_diffs=[],
+    ):
         self.num = int(num)
         self.total = total
         self.sectors = sectors
         self.diff = diff
+        self.sector_diffs = [Diff.Neutral for _ in sectors]
 
     def __str__(self) -> str:
         return self.fmt()
@@ -84,7 +92,15 @@ class Lap:
 
         for idx, s in enumerate(self.sectors):
             a = align[2 + idx] if 2 + idx < len(align) else 10
-            output += time_fmt(s, hours).ljust(a)
+
+            if self.sector_diffs[idx] == Diff.Up:
+                diff_color = Color.green
+            elif self.sector_diffs[idx] == Diff.Down:
+                diff_color = Color.red
+            else:
+                diff_color = Color.white
+
+            output += diff_color(time_fmt(s, hours).ljust(a)) + Color.reset(style=False)
 
         return output
 
@@ -101,6 +117,17 @@ class Lap:
             self.diff = Diff.Up
         else:
             self.diff = Diff.Neutral
+
+        for idx, this_sector in enumerate(self.sectors):
+            this = time_to_delta(this_sector)
+            other = time_to_delta(lap.sectors[idx])
+
+            if this > other:
+                self.sector_diffs[idx] = Diff.Down
+            elif this < other:
+                self.sector_diffs[idx] = Diff.Up
+            else:
+                self.sector_diffs[idx] = Diff.Neutral
 
     @classmethod
     def from_str(cls, num, total: str, *sectors: str):
@@ -128,17 +155,19 @@ class Stint:
         output = Color.magenta(self.name + "\n")
 
         for lap in self.laps:
-            if COLOR_COMPARE_STINT:
-                pass  # TODO
-
-            lap.set_diff_to(self.included_avg)
-
             if not lap.is_pit_lap():
                 output += Color.bright(str(lap) + "\n")
             elif lap.is_pit_lap() and show_all:
                 output += Color.dim(str(lap) + "*\n")
 
         return output
+
+    def set_diff_to(self, lap: None | Lap = None):
+        for l in self.laps:
+            if lap:
+                l.set_diff_to(lap)
+            else:
+                l.set_diff_to(self.included_avg)
 
 
 def included(laps: list[Lap]) -> list[Lap]:
@@ -219,6 +248,11 @@ class Stats:
             output += "# LAPS:\n"
 
             for stint in self.stints:
+                if COLOR_COMPARE_STINT:
+                    stint.set_diff_to(stint.included_avg)
+                else:
+                    stint.set_diff_to(self.included_avg)
+
                 output += stint.fmt(show_all) + "\n"
 
         if averages:
@@ -237,11 +271,20 @@ class Stats:
             output += "total avg".ljust(ALIGN[0]) + self.all_avg.fmt(align) + "\n\n"
 
         if totals:
-            align = [n + 3 for n in ALIGN]
-            align[0] = ALIGN[0]
             output += "# TOTALS:\n"
-            output += self.included_total.fmt(align, hours=True) + "\n"
-            output += self.all_total.fmt(align, hours=True) + "\n"
+
+            align = [0, *[n + 3 for n in ALIGN[1:]]]
+
+            output += (
+                "incl. total".ljust(ALIGN[0])
+                + self.included_total.fmt(align, hours=True)
+                + "\n"
+            )
+            output += (
+                "full total".ljust(ALIGN[0])
+                + self.all_total.fmt(align, hours=True)
+                + "\n"
+            )
 
         return output
 

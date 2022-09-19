@@ -30,7 +30,10 @@ def time_parse(string: str, hours=False) -> datetime:
 
 
 def average_time(time, n) -> datetime:
-    return delta_to_time(time_to_delta(time) / n)
+    try:
+        return delta_to_time(time_to_delta(time) / n)
+    except:
+        return datetime.utcfromtimestamp(0)
 
 
 # COLORING

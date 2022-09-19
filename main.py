@@ -1,3 +1,5 @@
+import csv
+
 # import statistics
 import colorama
 
@@ -32,6 +34,9 @@ IGNORE_PIT_LAPS = True
 # Set color based on stint average, otherwise total average
 COLOR_COMPARE_STINT = True
 
+# Column of names
+NAME_COLUMN = -1
+
 # Column alignment
 ALIGN = [14, 14, 12, 12, 12]
 
@@ -49,12 +54,14 @@ class Lap:
         total: datetime,
         *sectors: datetime,
         num=0,
+        ignored=False,
         diff=Diff.Neutral,
         sector_diffs=[],
     ):
         self.num = int(num)
         self.total = total
         self.sectors = sectors
+        self.ignored = ignored or self.is_pit_lap()
         self.diff = diff
         self.sector_diffs = (
             [Diff.Neutral for _ in sectors] if len(sector_diffs) == 0 else sector_diffs
@@ -133,9 +140,19 @@ class Lap:
 
     @classmethod
     def from_str(cls, num, total: str, *sectors: str):
-        t = time_parse(total)
-        s = [time_parse(s) for s in sectors]
-        return cls(t, *s, num=int(num))
+        t = time_parse(total.strip())
+        s = [time_parse(s.strip()) for s in sectors]
+
+        ignored = False
+        if type(num) == str:
+            if any([char in num for char in ["/", "*", "#"]]):
+                ignored = True
+
+            num = int(num.strip("/*# "))
+        else:
+            num = int(num)
+
+        return cls(t, *s, num=num, ignored=ignored)
 
     @classmethod
     def zero(cls, n_sectors=3):
@@ -157,9 +174,9 @@ class Stint:
         output = Color.magenta(self.name + "\n")
 
         for lap in self.laps:
-            if not lap.is_pit_lap():
+            if not lap.ignored:
                 output += Color.bright(str(lap) + "\n")
-            elif lap.is_pit_lap() and show_all:
+            elif lap.ignored and show_all:
                 output += Color.dim(str(lap) + "*\n")
 
         return output
@@ -173,7 +190,7 @@ class Stint:
 
 
 def included(laps: list[Lap]) -> list[Lap]:
-    return [lap for lap in laps if not lap.is_pit_lap()]
+    return [lap for lap in laps if not lap.ignored]
 
 
 def total(laps: list[Lap]):
@@ -294,13 +311,22 @@ class Stats:
 def main():
 
     laps: list[Lap] = []
+    with open("laps.csv") as file:
+        lines = csv.reader(file, delimiter="\t")
 
-    with open("laps.txt") as file:
-        lines = file.readlines()
+        if NAME_COLUMN < 0:
+            indices = [x for x in range(0, 5)]
+        else:
+            indices = [x if x < NAME_COLUMN else x + 1 for x in range(0, 5)]
 
         for line in lines:
-            parts = line.split()
-            lap = Lap.from_str(parts[0], parts[1], parts[2], parts[3], parts[4])
+            lap = Lap.from_str(
+                line[indices[0]],
+                line[indices[1]],
+                line[indices[2]],
+                line[indices[3]],
+                line[indices[4]],
+            )
             laps.append(lap)
 
     stats = Stats(laps)

@@ -64,14 +64,14 @@ class Lap:
         self.ignored = ignored or self.is_pit_lap()
         self.diff = diff
         self.sector_diffs = (
-            [Diff.Neutral for _ in sectors] if len(sector_diffs) == 0 else sector_diffs
+            [Diff.Neutral for _ in sectors] if not sector_diffs else sector_diffs
         )
 
     def __str__(self) -> str:
         return self.fmt()
 
     def __add__(self, other):
-        if type(other) != Lap:
+        if not isinstance(other, Lap):
             return self
 
         total = delta_to_time(time_to_delta(self.total) + time_to_delta(other.total))
@@ -95,8 +95,10 @@ class Lap:
         else:
             diff_color = Color.white
 
-        output = Color.white(num.ljust(align[0])) + diff_color(
-            time_fmt(self.total, hours).ljust(align[1]) + Color.reset(style=False)
+        output = (
+            Color.white(num.ljust(align[0]))
+            + diff_color(time_fmt(self.total, hours).ljust(align[1]))
+            + Color.reset(style=False)
         )
 
         for idx, s in enumerate(self.sectors):
@@ -144,7 +146,7 @@ class Lap:
         s = [time_parse(s.strip()) for s in sectors]
 
         ignored = False
-        if type(num) == str:
+        if isinstance(num, str):
             if any([char in num for char in ["/", "*", "#"]]):
                 ignored = True
 
